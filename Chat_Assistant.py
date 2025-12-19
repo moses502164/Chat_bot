@@ -25,15 +25,6 @@ st.set_page_config(
 st.markdown("## 🤖 AI Assistant")
 st.caption("Chat • File Analysis • Image Generation")
 
-
-with st.sidebar:
-    st.markdown("### 🛠 Tools")
-    Tool = st.radio("", ["💬 Chat", "🎨 Image Generation"], index=0)
-    if st.button("🔄 Reset Chat", use_container_width=True):
-        st.session_state.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        st.rerun()
-
-
 SYSTEM_PROMPT = "You are a helpful AI assistant."
 
 if "messages" not in st.session_state:
@@ -43,14 +34,20 @@ if "last_image" not in st.session_state:
     st.session_state.last_image = None
 
 
-if Tool == "💬 Chat":
-    
+with st.sidebar:
+    st.markdown("### 🛠 Tools")
+    Tool = st.radio("", ["💬 Chat", "🎨 Image Generation"], index=0)
 
+    if st.button("🔄 Reset Chat", use_container_width=True):
+        st.session_state.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        st.rerun()
+
+
+if Tool == "💬 Chat":
 
     for msg in st.session_state.messages:
         if msg["role"] != "system":
             st.chat_message(msg["role"]).write(msg["content"])
-
 
     file_text = ""
     uploaded_image = None
@@ -60,38 +57,35 @@ if Tool == "💬 Chat":
     with col_right:
         with st.expander("📎 Upload", expanded=False):
 
-            uploaded_image = st.file_uploader(
-                "Image",
-                type=["png", "jpg", "jpeg"],
-                label_visibility="collapsed"
-            )
-
             uploaded_file = st.file_uploader(
-                "Document",
-                type=["pdf", "docx", "txt"],
-                label_visibility="collapsed"
+                "Upload Image or Document",
+                type=["png", "jpg", "jpeg", "pdf", "docx", "txt"]
             )
-
-            if uploaded_image:
-                st.image(uploaded_image, width=150)
 
             if uploaded_file:
-                if uploaded_file.type == "application/pdf":
+               
+                if uploaded_file.type.startswith("image/"):
+                    uploaded_image = uploaded_file
+                    st.image(uploaded_file, width=150)
+
+                
+                elif uploaded_file.type == "application/pdf":
                     reader = PyPDF2.PdfReader(uploaded_file)
                     file_text = "\n".join(
                         page.extract_text() or "" for page in reader.pages
                     )
 
+                
                 elif uploaded_file.type == (
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 ):
                     doc = docx.Document(uploaded_file)
                     file_text = "\n".join(p.text for p in doc.paragraphs)
 
+               
                 elif uploaded_file.type == "text/plain":
                     file_text = uploaded_file.read().decode("utf-8")
 
- 
     user_input = st.chat_input("💬 Type your message...")
 
     if user_input:
@@ -123,8 +117,8 @@ if Tool == "💬 Chat":
 
         st.rerun()
 
-
 if Tool == "🎨 Image Generation":
+
     st.markdown("### 🎨 Image Generation")
 
     prompt = st.text_area(
@@ -158,3 +152,4 @@ if Tool == "🎨 Image Generation":
             mime="image/png",
             use_container_width=True
         )
+
